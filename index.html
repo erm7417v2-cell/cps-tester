@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaction & CPS Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --panel: #191c21;
+      --panel-2: #22262d;
+      --text: #f4f7fb;
+      --muted: #aab3c2;
+      --line: #303642;
+      --accent: #00c2a8;
+      --accent-2: #ffbf47;
+      --danger: #ff6270;
+      --cool: #62a8ff;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .35);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(0, 194, 168, .18), transparent 28rem),
+        radial-gradient(circle at 88% 22%, rgba(98, 168, 255, .13), transparent 26rem),
+        radial-gradient(circle at 50% 100%, rgba(255, 191, 71, .08), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 26px 0;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 5.4rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(17, 19, 24, .84);
+      box-shadow: var(--shadow);
+    }
+
+    button, input {
+      font: inherit;
+      color: inherit;
+    }
+
+    .tab, .action, .chip {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #061311;
+    }
+
+    .tab:hover, .action:hover, .chip:hover {
+      border-color: rgba(244, 247, 251, .28);
+      filter: brightness(1.08);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat, aside {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(25, 28, 33, .78);
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 11px 12px;
+      min-width: 0;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: .75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .value {
+      display: block;
+      margin-top: 3px;
+      font-size: clamp(1.15rem, 2.4vw, 2.25rem);
+      font-weight: 900;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      min-height: 560px;
+    }
+
+    .arena {
+      position: relative;
+      min-height: 560px;
+      border: 1px solid rgba(244, 247, 251, .18);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(0, 194, 168, .24), transparent 42%),
+        linear-gradient(315deg, rgba(255, 191, 71, .18), transparent 38%),
+        #16191f;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      transition: transform .08s ease, border-color .16s ease, background .16s ease;
+    }
+
+    .arena:active { transform: scale(.997); }
+    .arena.waiting { border-color: rgba(255, 191, 71, .85); }
+    .arena.ready { border-color: rgba(0, 194, 168, .9); background: #0e2b25; }
+    .arena.bad { border-color: rgba(255, 98, 112, .85); background: #2a151a; }
+    .arena.done { border-color: rgba(98, 168, 255, .9); }
+
+    .arena::before {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      border: 1px dashed rgba(244, 247, 251, .18);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .arena-top {
+      position: absolute;
+      z-index: 1;
+      top: 28px;
+      left: 28px;
+      right: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .badge {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(244, 247, 251, .2);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(17, 19, 24, .58);
+      color: rgba(244, 247, 251, .86);
+      font-size: .78rem;
+      font-weight: 850;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .arena-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 42px;
+      text-align: center;
+    }
+
+    .arena-center strong {
+      display: block;
+      font-size: clamp(3.2rem, 11vw, 9.8rem);
+      line-height: .82;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .arena-center span {
+      display: block;
+      margin-top: 22px;
+      color: rgba(244, 247, 251, .82);
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      font-weight: 750;
+    }
+
+    .progress {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      height: 12px;
+      border: 1px solid rgba(244, 247, 251, .16);
+      border-radius: 999px;
+      background: rgba(17, 19, 24, .62);
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .progress span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .08s linear;
+    }
+
+    .ripple {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border: 2px solid rgba(255, 255, 255, .78);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: pop .48s ease-out forwards;
+    }
+
+    @keyframes pop {
+      from { opacity: .8; transform: translate(-50%, -50%) scale(.2); }
+      to { opacity: 0; transform: translate(-50%, -50%) scale(4.4); }
+    }
+
+    aside {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #111318;
+    }
+
+    .chip.active {
+      background: var(--accent);
+      color: #061311;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 86px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #111318;
+      padding: 0 12px;
+      outline: none;
+      font-weight: 800;
+    }
+
+    input:focus { border-color: var(--accent); }
+
+    .action {
+      width: 100%;
+      background: var(--panel-2);
+      border-color: var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action.secondary {
+      color: var(--muted);
+      min-height: 38px;
+    }
+
+    .rows {
+      display: grid;
+      gap: 4px;
+      margin-top: auto;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .row:last-child { border-bottom: 0; }
+    .row b {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .history {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 34px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--muted);
+      background: rgba(17, 19, 24, .82);
+      font-weight: 750;
+      font-size: .86rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pill.best {
+      color: #061311;
+      border-color: transparent;
+      background: var(--accent);
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: .9rem;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100% - 20px, 700px);
+        padding: 18px 0;
+      }
+
+      header, .layout { grid-template-columns: 1fr; }
+      header { display: grid; }
+      .mode-tabs, .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .layout { display: grid; min-height: 0; }
+      .arena { min-height: min(62vh, 520px); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Reaction & CPS Lab</h1>
+      <div class="stats" aria-label="Live stats">
+        <div class="stat"><span class="label" id="statOneLabel">Score</span><span class="value" id="statOne">0.00</span></div>
+        <div class="stat"><span class="label" id="statTwoLabel">Count</span><span class="value" id="statTwo">0</span></div>
+        <div class="stat"><span class="label" id="statThreeLabel">Time</span><span class="value" id="statThree">5.0</span></div>
+        <div class="stat"><span class="label" id="statFourLabel">Best</span><span class="value" id="statFour">0.00</span></div>
+      </div>
+    </header>
+
+    <nav class="mode-tabs" aria-label="Choose tester">
+      <button class="tab active" type="button" data-mode="mouse">Mouse CPS</button>
+      <button class="tab" type="button" data-mode="space">Space CPS</button>
+      <button class="tab" type="button" data-mode="reflex">Reflex</button>
+      <button class="tab" type="button" data-mode="wheel">Wheel</button>
+    </nav>
+
+    <section class="layout">
+      <button class="arena" id="arena" type="button" aria-label="Test area">
+        <span class="arena-top">
+          <span class="badge" id="modeBadge">Mouse CPS</span>
+          <span class="badge" id="statusBadge">Ready</span>
+        </span>
+        <span class="arena-center">
+          <span>
+            <strong id="mainNumber">0.00</strong>
+            <span id="mainText">Click to start</span>
+          </span>
+        </span>
+        <span class="progress" aria-hidden="true"><span id="progressBar"></span></span>
+      </button>
+
+      <aside>
+        <div id="timedControls">
+          <span class="label">Test Length</span>
+          <div class="segmented" aria-label="Choose test length">
+            <button class="chip active" type="button" data-length="5">5s</button>
+            <button class="chip" type="button" data-length="10">10s</button>
+            <button class="chip" type="button" data-length="30">30s</button>
+          </div>
+        </div>
+
+        <div class="control-grid" id="customControls">
+          <label>
+            <span class="label">Custom Seconds</span>
+            <input id="customLength" type="number" min="1" max="120" value="5" inputmode="numeric">
+          </label>
+          <button class="action secondary" id="applyLength" type="button">Apply</button>
+        </div>
+
+        <button class="action" id="restart" type="button">Restart</button>
+
+        <div class="rows">
+          <div class="row"><span id="detailOneLabel">Last score</span><b id="detailOne">0.00</b></div>
+          <div class="row"><span id="detailTwoLabel">Peak CPS</span><b id="detailTwo">0.00</b></div>
+          <div class="row"><span id="detailThreeLabel">Average gap</span><b id="detailThree">0 ms</b></div>
+          <div class="row"><span id="detailFourLabel">Total tests</span><b id="detailFour">0</b></div>
+        </div>
+
+        <div>
+          <span class="label">Recent Results</span>
+          <div class="history" id="history" aria-live="polite"></div>
+        </div>
+
+        <button class="action secondary" id="clearScores" type="button">Clear Results</button>
+      </aside>
+    </section>
+
+    <footer id="footerText">Mouse CPS: click the big area as fast as you can.</footer>
+  </main>
+
+  <script>
+    const $ = selector => document.querySelector(selector);
+    const arena = $("#arena");
+    const tabs = [...document.querySelectorAll("[data-mode]")];
+    const lengthButtons = [...document.querySelectorAll("[data-length]")];
+    const el = {
+      statOneLabel: $("#statOneLabel"),
+      statTwoLabel: $("#statTwoLabel"),
+      statThreeLabel: $("#statThreeLabel"),
+      statFourLabel: $("#statFourLabel"),
+      statOne: $("#statOne"),
+      statTwo: $("#statTwo"),
+      statThree: $("#statThree"),
+      statFour: $("#statFour"),
+      modeBadge: $("#modeBadge"),
+      statusBadge: $("#statusBadge"),
+      mainNumber: $("#mainNumber"),
+      mainText: $("#mainText"),
+      progressBar: $("#progressBar"),
+      timedControls: $("#timedControls"),
+      customControls: $("#customControls"),
+      customLength: $("#customLength"),
+      applyLength: $("#applyLength"),
+      restart: $("#restart"),
+      clearScores: $("#clearScores"),
+      detailOneLabel: $("#detailOneLabel"),
+      detailTwoLabel: $("#detailTwoLabel"),
+      detailThreeLabel: $("#detailThreeLabel"),
+      detailFourLabel: $("#detailFourLabel"),
+      detailOne: $("#detailOne"),
+      detailTwo: $("#detailTwo"),
+      detailThree: $("#detailThree"),
+      detailFour: $("#detailFour"),
+      history: $("#history"),
+      footerText: $("#footerText")
+    };
+
+    const modeNames = {
+      mouse: "Mouse CPS",
+      space: "Space CPS",
+      reflex: "Reflex",
+      wheel: "Wheel"
+    };
+
+    const storageKey = "reactionCpsLabResults";
+    let mode = "mouse";
+    let length = 5;
+    let timer = null;
+    let reflexTimer = null;
+    let startedAt = 0;
+    let readyAt = 0;
+    let count = 0;
+    let running = false;
+    let finished = false;
+    let waiting = false;
+    let clickTimes = [];
+    let peak = 0;
+    let lastScore = 0;
+    let falseStarted = false;
+    let results = loadResults();
+
+    function loadResults() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        return stored && typeof stored === "object" ? stored : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveResults() {
+      localStorage.setItem(storageKey, JSON.stringify(results));
+    }
+
+    function modeResults() {
+      results[mode] ||= [];
+      return results[mode];
+    }
+
+    function format(value, digits = 2) {
+      return Number.isFinite(value) ? value.toFixed(digits) : "0.00";
+    }
+
+    function elapsed() {
+      return startedAt ? (performance.now() - startedAt) / 1000 : 0;
+    }
+
+    function remaining() {
+      return finished ? 0 : running ? Math.max(0, length - elapsed()) : length;
+    }
+
+    function timedScore() {
+      const seconds = Math.min(elapsed(), length);
+      return seconds > 0 ? count / seconds : 0;
+    }
+
+    function bestForCurrentMode() {
+      const list = mode === "reflex" ? modeResults().filter(item => !item.falseStart) : modeResults();
+      if (!list.length) return 0;
+      return mode === "reflex" ? Math.min(...list.map(item => item.score)) : Math.max(...list.map(item => item.score));
+    }
+
+    function averageGap() {
+      if (clickTimes.length < 2) return 0;
+      const gaps = clickTimes.slice(1).map((time, index) => time - clickTimes[index]);
+      return gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+    }
+
+    function addResult(score, extra = {}) {
+      results[mode] = [{ score, length, count, date: new Date().toISOString(), ...extra }, ...modeResults()].slice(0, 20);
+      saveResults();
+    }
+
+    function renderHistory() {
+      const list = modeResults().slice(0, 8);
+      const best = bestForCurrentMode();
+      el.history.innerHTML = list.map(item => {
+        const isBest = item.score === best && best > 0;
+        const suffix = mode === "reflex" ? "ms" : mode === "wheel" ? "w/s" : "cps";
+        if (item.falseStart) return `<span class="pill">Early</span>`;
+        return `<span class="pill${isBest ? " best" : ""}">${format(item.score, mode === "reflex" ? 0 : 2)} ${suffix}</span>`;
+      }).join("");
+    }
+
+    function setArenaState(state) {
+      arena.classList.toggle("waiting", state === "waiting");
+      arena.classList.toggle("ready", state === "ready");
+      arena.classList.toggle("bad", state === "bad");
+      arena.classList.toggle("done", state === "done");
+    }
+
+    function addRipple(event) {
+      if (!event || !("clientX" in event)) return;
+      const rect = arena.getBoundingClientRect();
+      const ripple = document.createElement("span");
+      ripple.className = "ripple";
+      ripple.style.left = `${event.clientX - rect.left}px`;
+      ripple.style.top = `${event.clientY - rect.top}px`;
+      arena.append(ripple);
+      ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+    }
+
+    function render() {
+      const best = bestForCurrentMode();
+      const score = mode === "reflex" ? lastScore : timedScore();
+      if (running && mode !== "reflex") peak = Math.max(peak, score);
+      el.modeBadge.textContent = modeNames[mode];
+      el.statusBadge.textContent = finished ? "Done" : running ? "Running" : waiting ? "Wait" : "Ready";
+      el.progressBar.style.width = mode === "reflex"
+        ? (waiting ? "50%" : running ? "100%" : finished ? "100%" : "0%")
+        : `${finished ? 100 : running ? Math.min(100, elapsed() / length * 100) : 0}%`;
+      el.timedControls.style.display = mode === "reflex" ? "none" : "";
+      el.customControls.style.display = mode === "reflex" ? "none" : "";
+
+      if (mode === "reflex") {
+        el.statOneLabel.textContent = "Reaction";
+        el.statTwoLabel.textContent = "Attempts";
+        el.statThreeLabel.textContent = "State";
+        el.statFourLabel.textContent = "Best";
+        el.statOne.textContent = finished ? falseStarted ? "Early" : `${format(score, 0)} ms` : "0 ms";
+        el.statTwo.textContent = modeResults().length;
+        el.statThree.textContent = waiting ? "Wait" : running ? "Click" : finished ? "Done" : "Ready";
+        el.statFour.textContent = best ? `${format(best, 0)} ms` : "0 ms";
+        el.mainNumber.textContent = finished ? falseStarted ? "Early" : format(score, 0) : waiting ? "..." : running ? "NOW" : "0";
+        el.mainText.textContent = waiting ? "Wait for green" : running ? "Click now" : finished ? "Reaction time in ms" : "Click to start";
+        el.detailOneLabel.textContent = "Last reaction";
+        el.detailTwoLabel.textContent = "Best reaction";
+        el.detailThreeLabel.textContent = "Attempts";
+        el.detailFourLabel.textContent = "False starts";
+        el.detailOne.textContent = finished ? falseStarted ? "Too early" : `${format(score, 0)} ms` : "0 ms";
+        el.detailTwo.textContent = best ? `${format(best, 0)} ms` : "0 ms";
+        el.detailThree.textContent = modeResults().length;
+        el.detailFour.textContent = modeResults().filter(item => item.falseStart).length;
+        el.footerText.textContent = "Reflex: click once, wait for green, then click as fast as possible.";
+      } else {
+        const suffix = mode === "wheel" ? "W/S" : "CPS";
+        el.statOneLabel.textContent = suffix;
+        el.statTwoLabel.textContent = mode === "wheel" ? "Scrolls" : "Clicks";
+        el.statThreeLabel.textContent = "Time";
+        el.statFourLabel.textContent = "Best";
+        el.statOne.textContent = format(score);
+        el.statTwo.textContent = count;
+        el.statThree.textContent = remaining().toFixed(1);
+        el.statFour.textContent = format(best);
+        el.mainNumber.textContent = format(finished ? lastScore : score);
+        el.mainText.textContent = finished ? "Finished" : running ? actionText() : startText();
+        el.detailOneLabel.textContent = mode === "wheel" ? "Last speed" : "Last score";
+        el.detailTwoLabel.textContent = mode === "wheel" ? "Peak speed" : "Peak CPS";
+        el.detailThreeLabel.textContent = mode === "wheel" ? "Average gap" : "Average gap";
+        el.detailFourLabel.textContent = "Total tests";
+        el.detailTwo.textContent = format(peak);
+        el.detailOne.textContent = finished ? format(lastScore) : el.detailOne.textContent;
+        el.detailThree.textContent = clickTimes.length > 1 ? `${Math.round(averageGap())} ms` : "0 ms";
+        el.detailFour.textContent = modeResults().length;
+        el.footerText.textContent = footerText();
+      }
+
+      renderHistory();
+    }
+
+    function startText() {
+      if (mode === "space") return "Press space to start";
+      if (mode === "wheel") return "Scroll here to start";
+      return "Click to start";
+    }
+
+    function actionText() {
+      if (mode === "space") return "Keep pressing space";
+      if (mode === "wheel") return "Keep scrolling";
+      return "Keep clicking";
+    }
+
+    function footerText() {
+      if (mode === "space") return "Space CPS: press the spacebar as fast as you can.";
+      if (mode === "wheel") return "Wheel: put your cursor over the big area and scroll as fast as you can.";
+      return "Mouse CPS: click the big area as fast as you can.";
+    }
+
+    function startTimed() {
+      running = true;
+      finished = false;
+      startedAt = performance.now();
+      setArenaState("");
+      timer = setInterval(() => {
+        if (elapsed() >= length) finishTimed();
+        render();
+      }, 50);
+    }
+
+    function countTimed(event) {
+      if (mode === "reflex" || finished) return;
+      if (!running) startTimed();
+      count += 1;
+      clickTimes.push(performance.now());
+      addRipple(event);
+      if (elapsed() >= length) finishTimed();
+      render();
+    }
+
+    function finishTimed() {
+      if (!running) return;
+      running = false;
+      finished = true;
+      clearInterval(timer);
+      timer = null;
+      const finalScore = count / length;
+      lastScore = finalScore;
+      el.detailOne.textContent = format(finalScore);
+      addResult(finalScore, { peak });
+      setArenaState("done");
+      render();
+    }
+
+    function startReflex() {
+      clearTimeout(reflexTimer);
+      waiting = true;
+      running = false;
+      finished = false;
+      falseStarted = false;
+      lastScore = 0;
+      setArenaState("waiting");
+      el.detailOne.textContent = "0 ms";
+      const delay = 1200 + Math.random() * 2800;
+      reflexTimer = setTimeout(() => {
+        waiting = false;
+        running = true;
+        readyAt = performance.now();
+        setArenaState("ready");
+        render();
+      }, delay);
+      render();
+    }
+
+    function handleReflexClick() {
+      if (finished) {
+        reset();
+        return;
+      }
+      if (!waiting && !running) {
+        startReflex();
+        return;
+      }
+      if (waiting) {
+        clearTimeout(reflexTimer);
+        waiting = false;
+        finished = true;
+        falseStarted = true;
+        lastScore = 0;
+        addResult(9999, { falseStart: true });
+        el.detailOne.textContent = "Too early";
+        setArenaState("bad");
+        render();
+        return;
+      }
+      if (running) {
+        const reaction = performance.now() - readyAt;
+        running = false;
+        finished = true;
+        falseStarted = false;
+        lastScore = reaction;
+        addResult(reaction);
+        el.detailOne.textContent = `${format(reaction, 0)} ms`;
+        setArenaState("done");
+        render();
+      }
+    }
+
+    function reset() {
+      clearInterval(timer);
+      clearTimeout(reflexTimer);
+      timer = null;
+      reflexTimer = null;
+      startedAt = 0;
+      readyAt = 0;
+      count = 0;
+      running = false;
+      finished = false;
+      waiting = false;
+      clickTimes = [];
+      peak = 0;
+      lastScore = 0;
+      falseStarted = false;
+      el.detailOne.textContent = mode === "reflex" ? "0 ms" : "0.00";
+      setArenaState("");
+      render();
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      tabs.forEach(tab => tab.classList.toggle("active", tab.dataset.mode === mode));
+      reset();
+    }
+
+    function setLength(value) {
+      length = Math.max(1, Math.min(120, Math.round(Number(value) || 5)));
+      el.customLength.value = length;
+      lengthButtons.forEach(button => button.classList.toggle("active", Number(button.dataset.length) === length));
+      reset();
+    }
+
+    arena.addEventListener("click", event => {
+      if (mode === "mouse") countTimed(event);
+      if (mode === "reflex") handleReflexClick();
+    });
+
+    arena.addEventListener("wheel", event => {
+      if (mode !== "wheel" || finished) return;
+      event.preventDefault();
+      countTimed();
+    }, { passive: false });
+
+    window.addEventListener("keydown", event => {
+      const typing = document.activeElement === el.customLength;
+      if (mode === "space" && event.code === "Space" && !typing) {
+        event.preventDefault();
+        countTimed();
+      }
+      if (event.key.toLowerCase() === "r" && !typing) reset();
+    });
+
+    tabs.forEach(tab => tab.addEventListener("click", () => setMode(tab.dataset.mode)));
+    lengthButtons.forEach(button => button.addEventListener("click", () => setLength(button.dataset.length)));
+    el.applyLength.addEventListener("click", () => setLength(el.customLength.value));
+    el.customLength.addEventListener("keydown", event => {
+      if (event.key === "Enter") setLength(el.customLength.value);
+    });
+    el.restart.addEventListener("click", reset);
+    el.clearScores.addEventListener("click", () => {
+      results[mode] = [];
+      saveResults();
+      reset();
+    });
+
+    el.customLength.value = length;
+    render();
+  </script>
+</body>
+</html>
